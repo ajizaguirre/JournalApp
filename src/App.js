@@ -1,24 +1,15 @@
-import logo from './logo.svg';
-import './App.css';
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
-import { useInterval } from "use-interval";
-
-
+import axios from "axios";
 
 const JournalApp = () => {
     const [entries, setEntries] = useState([]);
-    const [reminderTime, setReminderTime] = useState(null);
-    const [start, setStart] = useState(false);
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
     useEffect(() => {
-        const intervalId = useEffect(() => {
-            setReminderTime(new Date().getTime() + Math.floor(Math.random() * (60 * 60 * 1000)));
-        }, 1000);
-
-        return () => {
-            clearInterval(intervalId);
-        };
+        axios.get("/api/entries").then((response) => {
+            setEntries(response.data);
+        });
     }, []);
 
     const handleSubmit = (e) => {
@@ -29,7 +20,15 @@ const JournalApp = () => {
             body: e.target.body.value,
         };
 
-        setEntries([...entries, entry]);
+        axios.post("/api/entries", entry).then((response) => {
+            setEntries([...entries, response.data]);
+        });
+
+        setIsNotificationOpen(false);
+    };
+
+    const handleNotificationClose = () => {
+        setIsNotificationOpen(false);
     };
 
     const renderEntries = () => {
@@ -41,14 +40,11 @@ const JournalApp = () => {
         ));
     };
 
-    const renderReminder = () => {
-        if (reminderTime === null) {
-            return null;
-        }
-
+    const renderNotification = () => {
         return (
             <div>
-                <p>You have a reminder to write a journal entry in {new Date(reminderTime).toLocaleTimeString()}.</p>
+                <h2>Don't forget to write your journal entry!</h2>
+                <button onClick={handleNotificationClose}>Close</button>
             </div>
         );
     };
@@ -59,21 +55,18 @@ const JournalApp = () => {
             <form onSubmit={handleSubmit}>
                 <input type="text" name="title" placeholder="Title" />
                 <textarea name="body" placeholder="Body"></textarea>
-                <input type="submit" value="Submit" />
+                <button type="submit">Submit</button>
             </form>
-            <button type="button" onClick={() => setStart(false)}>
-                Click to stop
-            </button>
-            <span>{start ? " useInterval started" : " useInterval stopped"}</span>
-            {renderEntries()}
-            {renderReminder()}
+            {isNotificationOpen ? renderNotification() : null}
+            <ul>
+                {renderEntries()}
+            </ul>
         </div>
     );
 };
 
 const rootElement = document.getElementById("root");
 ReactDOM.render(<JournalApp />, rootElement);
-  
 
 
 export default JournalApp;
